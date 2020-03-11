@@ -747,3 +747,243 @@ and name != 'art garfunkel'
   | Harris Yulin           |
   | Robert DoQui           |
 </details>
+
+## 8. Using Null
+
+**1. Use [`IS NULL`](http://en.wikipedia.org/wiki/Null_%28SQL%29) to check for the absence of a value**
+```sql
+select name from teacher where dept is null
+```
+<details>
+  <summary>Results</summary>
+  
+  | name       |
+  | ---------- |
+  | Spiregrain |
+  | Deadyawn   |
+</details>
+
+**2. Example of how `INNER JOIN` misses the null departments and null teachers in the teacher table**
+```sql
+SELECT teacher.name, dept.name
+FROM teacher INNER JOIN dept
+             ON (teacher.dept=dept.id)
+```
+<details>
+  <summary>Results</summary>
+  
+  | name      | name      |
+  | --------- | --------- |
+  | Shrivell  | Computing |
+  | Throd     | Computing |
+  | Splint    | Computing |
+  | Cutflower | Design    |
+</details>
+
+**3. Example of how `LEFT JOIN` lists the null values from the dept table**
+```sql
+select teacher.name, dept.name
+from teacher left join dept on (teacher.dept=dept.id)
+```
+<details>
+  <summary>Results</summary>
+  
+  | name       | name      |
+  | ---------- | --------- |
+  | Shrivell   | Computing |
+  | Throd      | Computing |
+  | Splint     | Computing |
+  | Spiregrain | null      |
+  | Cutflower  | Design    |
+  | Deadyawn   | null      |
+</details>
+
+**4. Example of how `RIGHT JOIN` lists the null values from the teacher table**
+```sql
+select teacher.name, dept.name
+from teacher right join dept on (teacher.dept=dept.id)
+```
+<details>
+  <summary>Results</summary>
+  
+  | name      | name        |
+  | --------- | ----------- |
+  | Shrivell  | Computing   |
+  | Throd     | Computing   |
+  | Splint    | Computing   |
+  | Cutflower | Design      |
+  | null      | Engineering |
+</details>
+
+`COALESCE` takes any number of arguments and returns the first value that is not null, e.g.,
+```sql
+COALESCE(x,y,z) = x if x is not NULL
+COALESCE(x,y,z) = y if x is NULL and y is not NULL
+COALESCE(x,y,z) = z if x and y are NULL but z is not NULL
+COALESCE(x,y,z) = NULL if x and y and z are all NULL
+```
+
+**5. Returns teacher names and their mobile numbers. If there is no mobile number, a default value of '07986 444 2266' is displayed instead.**
+```sql
+select name, COALESCE(mobile,'07986 444 2266')
+from teacher
+```
+<details>
+  <summary>Results</summary>
+  
+  | name       | COALESCE(mobi.. |
+  | ---------- | --------------- |
+  | Shrivell   | 07986 555 1234  |
+  | Throd      | 07122 555 1920  |
+  | Splint     | 07986 444 2266  |
+  | Spiregrain | 07986 444 2266  |
+  | Cutflower  | 07996 555 6574  |
+  | Deadyawn   | 07986 444 2266  |
+</details>
+
+**8. Returns the number of staff from each department using `RIGHT JOIN` and `GROUP BY`**
+```sql
+select dept.name dept, count(teacher.name) staffcount
+from teacher right join dept on (teacher.dept=dept.id)
+group by dept.name
+```
+<details>
+  <summary>Results</summary>
+  
+  | dept        | staffcount |
+  | ----------- | ---------- |
+  | Computing   | 3          |
+  | Design      | 1          |
+  | Engineering | 0          |
+</details>
+
+**10. `CASE` example**
+```sql
+select name,
+       case
+         when dept=1 or dept=2 then 'Sci'
+         when dept=3 then 'Art'
+         else 'None' end
+from teacher
+```
+<details>
+  <summary>Results</summary>
+  
+  | name       | case .. |
+  | ---------- | ------- |
+  | Shrivell   | Sci     |
+  | Throd      | Sci     |
+  | Splint     | Sci     |
+  | Spiregrain | None    |
+  | Cutflower  | Sci     |
+  | Deadyawn   | None    |
+</details>
+
+## 8+. Numeric Examples
+
+**10. Returns institutions in Machester, along with their total sample size and total number of computing students**
+```sql
+SELECT institution,sum(sample),sum(case when subject like '%comp%' then sample else 0 end)
+  FROM nss
+  WHERE question='Q01'
+    AND (institution LIKE '%Manchester%')
+group by institution
+```
+<details>
+  <summary>Results</summary>
+  
+  | institution                        | sum(sample) | sum(case when.. |
+  | ---------------------------------- | ----------- | --------------- |
+  | Manchester Metropolitan University | 6994        | 310             |
+  | The Manchester College             | 537         | 46              |
+  | University of Manchester           | 8065        | 180             |
+</details>
+
+## 9-. Window Function
+
+**2. Use `RANK` to see the order of the rows**
+```sql
+SELECT party, votes,
+       RANK() OVER (ORDER BY votes DESC) as posn
+  FROM ge
+ WHERE constituency = 'S14000024' AND yr = 2017
+ORDER BY party
+```
+<details>
+  <summary>Results</summary>
+  
+  | party             | votes | posn |
+  | ----------------- | ----- | ---- |
+  | Conservative      | 9428  | 3    |
+  | Labour            | 26269 | 1    |
+  | Liberal Democrats | 1388  | 4    |
+  | SNP               | 10755 | 2    |
+</details>
+
+
+**3. Use `RANK` and `PARTITION BY` to show the ranking of each party in each year**
+```sql
+SELECT yr,party, votes,
+      RANK() OVER (PARTITION BY yr ORDER BY votes DESC) as posn
+  FROM ge
+ WHERE constituency = 'S14000021'
+ORDER BY party,yr
+```
+<details>
+  <summary>Results</summary>
+  
+  | constituency | party             | votes | posn |
+  | ------------ | ----------------- | ----- | ---- |
+  | S14000021    | Conservative      | 21496 | 1    |
+  | S14000022    | SNP               | 18509 | 1    |
+  | S14000023    | SNP               | 19243 | 1    |
+  | S14000024    | Labour            | 26269 | 1    |
+  | S14000025    | SNP               | 17575 | 1    |
+  | S14000026    | Liberal Democrats | 18108 | 1    |
+  | S14000021    | SNP               | 16784 | 2    |
+  | S14000022    | Labour            | 15084 | 2    |
+  | S14000023    | Labour            | 17618 | 2    |
+  | S14000024    | SNP               | 10755 | 2    |
+  | S14000025    | Conservative      | 16478 | 2    |
+  | S14000026    | SNP               | 15120 | 2    |
+  | S14000021    | Labour            | 14346 | 3    |
+  | S14000022    | Conservative      | 8081  | 3    |
+  | S14000023    | Conservative      | 15385 | 3    |
+  | S14000024    | Conservative      | 9428  | 3    |
+  | S14000025    | Labour            | 13213 | 3    |
+  | S14000026    | Conservative      | 11559 | 3    |
+  | S14000021    | Liberal Democrats | 1112  | 4    |
+  | S14000022    | Liberal Democrats | 1849  | 4    |
+  | S14000023    | Liberal Democrats | 2579  | 4    |
+  | S14000024    | Liberal Democrats | 1388  | 4    |
+  | S14000025    | Liberal Democrats | 2124  | 4    |
+  | S14000026    | Labour            | 7876  | 4    |
+  | S14000023    | Green             | 1727  | 5    |
+  | S14000026    | SIR               | 132   | 5    |
+</details>
+
+**5. Uses `SELECT` within `SELECT` to return only the 2017 winners in the Edinburgh constituencies**
+```sql
+SELECT constituency,party
+  FROM (select constituency,
+               party,
+               votes,
+               rank() over (partition by constituency order by votes desc) as posn
+        from ge
+          where yr=2017) x
+  WHERE constituency BETWEEN 'S14000021' AND 'S14000026'
+    and x.posn=1
+ORDER BY constituency,votes DESC
+```
+<details>
+  <summary>Results</summary>
+
+  | constituency | party             |
+  | ------------ | ----------------- |
+  | S14000021    | Conservative      |
+  | S14000022    | SNP               |
+  | S14000023    | SNP               |
+  | S14000024    | Labour            |
+  | S14000025    | SNP               |
+  | S14000026    | Liberal Democrats |
+</details>
