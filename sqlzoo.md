@@ -1,4 +1,10 @@
-# learn_sql
+# sqlzoo
+
+# About
+
+[sqlzoo](https://sqlzoo.net/) is a website containing interactive tutorials for learning SQL. This document contains my answers to select exercises from each of the site's major chapters.
+
+# Table of Contents
 
 <details open>
   <summary>Sections</summary>
